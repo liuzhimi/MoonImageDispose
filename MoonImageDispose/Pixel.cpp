@@ -51,7 +51,7 @@ PixelRGBA& Pixel::operator[](int i)
 	return pixel[i];
 }
 
-PixelRGBA& Pixel::At(int i, int j)
+PixelRGBA& Pixel::At(int x, int y)
 {
-	return pixel[j*width + i];
+	return pixel[y*width + x];
 }

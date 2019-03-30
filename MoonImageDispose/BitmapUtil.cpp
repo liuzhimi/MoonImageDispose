@@ -1,5 +1,6 @@
 #include "pch.h";
 #include "BitmapUtil.h";
+#include <cmath>
 
 int BitmapUtil::flag = 1;
 
@@ -261,4 +262,232 @@ int BitmapUtil::CountMid(int x1, int x2, int x3, int x4, int x5, int x6, int x7,
 		array[minIndex] = temp;
 	}
 	return array[5];
+}
+
+void BitmapUtil::MakeScalePic(Pixel* src, Pixel* dst, double inSampleSize)
+{
+	int dstWidth = src->Width() * inSampleSize;
+	int dstHeight = src->Height() * inSampleSize;
+
+	dst->SetSize(dstWidth, dstHeight);
+
+	for (int i = 0; i < dstHeight; i++)
+	{
+		double srcY = i / inSampleSize;
+		int intY = (int)srcY;
+		double v = srcY - intY;
+		double v1 = 1.0 - v;
+		for (int j = 0; j < dstWidth; j++)
+		{
+			double srcX = j / inSampleSize;
+			int intX = (int)srcX;
+			double u = srcX - intX;
+			double u1 = 1.0 - u;
+
+			int indexLeftX = intX;
+			int indexRightX;
+			if (indexLeftX + 1 < src->Width())
+			{
+				indexRightX = indexLeftX + 1;
+			}
+			else 
+			{
+				indexRightX = indexLeftX;
+			}
+			int indexTopY = intY;
+			int indexBelowY;
+			if (indexTopY + 1 < src->Height())
+			{
+				indexBelowY = indexTopY + 1;
+			}
+			else 
+			{
+				indexBelowY = indexTopY;
+			}
+			dst->At(j, i).r = v1*(u*src->At(indexRightX, indexTopY).r + u1 * src->At(indexLeftX, indexTopY).r)
+				+ v * (u * src->At(indexRightX, indexBelowY).r + u1 * src->At(indexLeftX, indexBelowY).r);
+			dst->At(j, i).g = v1*(u*src->At(indexRightX, indexTopY).g + u1 * src->At(indexLeftX, indexTopY).g)
+				+ v * (u * src->At(indexRightX, indexBelowY).g + u1 * src->At(indexLeftX, indexBelowY).g);
+			dst->At(j, i).b = v1*(u*src->At(indexRightX, indexTopY).b + u1 * src->At(indexLeftX, indexTopY).b)
+				+ v * (u * src->At(indexRightX, indexBelowY).b + u1 * src->At(indexLeftX, indexBelowY).b);
+			dst->At(j, i).a = 0;
+		}
+	}
+}
+
+void BitmapUtil::MakeTranslation(Pixel* src, Pixel* temp, Pixel* dst, int x, int y)
+{
+	int width = src->Width();
+	int height = src->Height();
+	temp->SetSize(width, height);
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < height; j++) {
+			temp->At(i, j).a = 255;
+			temp->At(i, j).r = 255;
+			temp->At(i, j).g = 255;
+			temp->At(i, j).b = 255;
+		}
+	}
+	MoveX(src, temp, dst, x, y);
+}
+
+void BitmapUtil::MoveX(Pixel* src, Pixel* temp, Pixel* dst, int x, int y)
+{
+	int width = src->Width();
+	int height = src->Height();
+	if (x >= 0)
+	{
+		for (int i = 0; i + x < width; i++)
+		{
+			for (int j = 0; j < height; j++)
+			{
+				temp->At(i + x, j).a = src->At(i, j).a;
+				temp->At(i + x, j).r = src->At(i, j).r;
+				temp->At(i + x, j).g = src->At(i, j).g;
+				temp->At(i + x, j).b = src->At(i, j).b;
+			}
+		}
+		MoveY(src, temp, dst, x, y);
+	}
+	else {
+		for (int i = width - 1; i + x > 0; i--)
+		{
+			for (int j = 0; j < height; j++)
+			{
+				temp->At(i + x, j).a = src->At(i, j).a;
+				temp->At(i + x, j).r = src->At(i, j).r;
+				temp->At(i + x, j).g = src->At(i, j).g;
+				temp->At(i + x, j).b = src->At(i, j).b;
+			}
+		}
+		MoveY(src,temp, dst, x, y);
+	}
+}
+
+void BitmapUtil::MoveY(Pixel* src, Pixel* temp, Pixel* dst, int x, int y)
+{
+	int width = src->Width();
+	int height = src->Height();
+	dst->SetSize(width, height);
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < height; j++) {
+			dst->At(i, j).a = 255;
+			dst->At(i, j).r = 255;
+			dst->At(i, j).g = 255;
+			dst->At(i, j).b = 255;
+		}
+	}
+	if (y >= 0)
+	{
+		for (int i = 0; i < width; i++)
+		{
+			for (int j = 0; j  + y < height; j++)
+			{
+				dst->At(i, j + y).a = temp->At(i, j).a;
+				dst->At(i, j + y).r = temp->At(i, j).r;
+				dst->At(i, j + y).g = temp->At(i, j).g;
+				dst->At(i, j + y).b = temp->At(i, j).b;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < width; i++)
+		{
+			for (int j = height - 1; j + y > 0; j--)
+			{
+				dst->At(i, j + y).a = temp->At(i, j).a;
+				dst->At(i, j + y).r = temp->At(i, j).r;
+				dst->At(i, j + y).g = temp->At(i, j).g;
+				dst->At(i, j + y).b = temp->At(i, j).b;
+			}
+		}
+	}
+}
+
+void BitmapUtil::MakeMirror(Pixel* src, Pixel* dst)
+{
+	int width = src->Width();
+	int height = src->Height();
+	dst->SetSize(width, height);
+	int x = 0;
+	int y = 0;
+	int dstX = 0;
+	for (int i = 0; i < width; i++)
+	{
+		x = i;
+		dstX = width - 1 - x;
+		for (int j = 0; j < height; j++)
+		{
+			y = j;
+			dst->At(x, y).a = src->At(dstX, y).a;
+			dst->At(x, y).r = src->At(dstX, y).r;
+			dst->At(x, y).g = src->At(dstX, y).g;
+			dst->At(x, y).b = src->At(dstX, y).b;
+		}
+	}
+}
+
+void BitmapUtil::MakeRotate(Pixel* src, Pixel* dst, double degree)
+{
+	int widthSrc = src->Width();
+	int heightSrc = src->Height();
+
+	double radian = degree * PI / 180.0;
+	double sinn = sin(radian);
+	double coss = cos(radian);
+
+	int widthDst = (int)(heightSrc * abs(sinn) + widthSrc * abs(coss));
+	int heightDst = (int)(widthSrc * abs(sinn) + heightSrc * abs(coss));
+
+	dst->SetSize(widthDst, heightDst);
+
+	int dx = (int)(widthSrc / 2 * (1 - coss) + heightSrc / 2 * sinn);
+	int dy = (int)(widthSrc / 2 * (0 - sinn) + heightSrc / 2 * (1 - coss));
+
+	int insertBeginX = widthSrc / 2 - widthDst / 2;
+	int insertBeginY = heightSrc / 2 - heightDst / 2;
+
+	double ku = insertBeginX * coss - insertBeginY * sinn + dx;
+	double kv = insertBeginX * sinn + insertBeginY * coss + dy;
+	double cu1 = coss, cu2 = sinn;
+	double cv1 = sinn, cv2 = coss;
+
+	double fu, fv, a, b, F1, F2;
+	int Iu, Iv;
+
+	for (int i = 0; i < heightDst; i++) {
+		for (int j = 0; j < widthDst; j++) {
+			fu = j * cu1 - i * cu2 + ku;
+			fv = j * cv1 + i * cv2 + kv;
+			if ((fv) < 1 || (fv > heightSrc - 1) || (fu < 1) || (fu > widthSrc - 1))
+			{
+				dst->At(j, i).a = 0;
+				dst->At(j, i).r = 150;
+				dst->At(j, i).g = 150;
+				dst->At(j, i).b = 150;
+			}
+			else
+			{
+				Iu = (int)fu;
+				Iv = (int)fv;
+				a = fu - Iu;
+				b = fv - Iv;
+				F1 = (1 - b)* (*src)[Iv * widthSrc + Iu].r + b * (*src)[(Iv + 1) * widthSrc + Iu].r;
+				F2 = (1 - b)* (*src)[Iv * widthSrc + (Iu + 1)].r + b * (*src)[(Iv + 1) * widthSrc + (Iu + 1)].r;
+				dst->At(j ,i).r = ((1 - a) * F1 + a * F2);
+				//(*dst)[i * widthDst + j].r = ((1 - a) * F1 + a * F2);
+
+				F1 = (1 - b)* (*src)[Iv * widthSrc + Iu ].g + b * (*src)[Iv * widthSrc + Iu ].g;
+				F2 = (1 - b)* (*src)[Iv * widthSrc + (Iu + 1) ].g + b * (*src)[(Iv + 1) * widthSrc + (Iu + 1) ].g;
+				dst->At(j, i).g = ((1 - a) * F1 + a * F2);
+				//(*dst)[i * widthDst + j].g = ((1 - a) * F1 + a * F2);
+
+				F1 = (1 - b)* (*src)[Iv * widthSrc + Iu ].b + b * (*src)[Iv * widthSrc + Iu ].b;
+				F2 = (1 - b)* (*src)[Iv * widthSrc + (Iu + 1) ].b + b * (*src)[(Iv + 1) * widthSrc + (Iu + 1) ].b;
+				dst->At(j, i).b = ((1 - a) * F1 + a * F2);
+				//(*dst)[i * widthDst + j].b = ((1 - a) * F1 + a * F2);
+			}
+		}
+		
+	}
 }
