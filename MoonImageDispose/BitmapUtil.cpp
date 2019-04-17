@@ -491,3 +491,146 @@ void BitmapUtil::MakeRotate(Pixel* src, Pixel* dst, double degree)
 		
 	}
 }
+
+void BitmapUtil::MakeSegmentationWithFixedNum(Pixel* src, Pixel* dst, int num)
+{
+	int width = src->Width();
+	int height = src->Height();
+	dst->SetSize(width, height);
+
+	for (int i = 0; i < width; i++)
+	{
+
+		for (int j = 0; j < height; j++)
+		{
+			if (src->At(i, j).r <= num)
+			{
+				dst->At(i, j).r = 0;
+				dst->At(i, j).g = 0;
+				dst->At(i, j).b = 0;
+				dst->At(i, j).a = 0;
+			}
+			else {
+				dst->At(i, j).r = 255;
+				dst->At(i, j).g = 255;
+				dst->At(i, j).b = 255;
+				dst->At(i, j).a = 0;
+			}
+		}
+	}
+}
+
+void BitmapUtil::MakeSegmentationWithIterativeThresholdMethod(Pixel* src, Pixel* dst)
+{
+	unsigned int len = src->Width() * src->Height();
+	double grayTable[256] = { 0 };
+	for (int i = 0; i < len; i++) {
+		grayTable[(*src)[i].r]++;
+	}
+	int maxPosition;
+	int max = 255;
+	int min = 0;
+	for (int i = 0; i < 256; i++)
+	{
+		for (int j = i + 1; j < 256; j++)
+		{
+			if (max < grayTable[j]) {
+				max = j;
+				continue;
+			}
+
+			if (min > grayTable[j])
+			{
+				min = j;
+			}
+		}
+	}
+	/*for (int i = 0; i < 256; i++)
+	{
+		grayTable[i] = grayTable[i] / len;
+	}*/
+	long threshold = (max + min) >> 1;
+	int zo = 0, bo = 0;
+	int sum1 = 0, sum2 = 0;
+	long oldThreshold = threshold;
+	long sum[256] = { 0 };
+	long sumNum[256] = { 0 };
+	sumNum[0] = grayTable[0];
+	for (int i = 1; i < 256; i++) {
+		sum[i] = sum[i - 1] + grayTable[i] * i;
+		sumNum[i] = sumNum[i - 1] + grayTable[i];
+	}
+	do {
+		if (sumNum[threshold] == 0)
+		{
+			zo = threshold;
+		}
+		else {
+			zo = sum[threshold] / sumNum[threshold];
+		}
+		if ((sumNum[255] - sumNum[threshold])==0)
+		{
+			bo = threshold;
+		}
+		else {
+			bo = (sum[255] - sum[threshold]) / (sumNum[255] - sumNum[threshold]);
+		}
+		
+		oldThreshold = threshold;
+		threshold = (zo + bo) >> 1;
+	} while (oldThreshold != threshold);
+	printf("%d\n", threshold);
+	MakeSegmentationWithFixedNum(src, dst, threshold);
+}
+
+void BitmapUtil::MakeSegmentationWithOstu(Pixel* src, Pixel* dst)
+{
+	unsigned int len = src->Width() * src->Height();
+	double hist[256] = { 0 };
+
+	double omega[256];
+	double mu[256];
+
+	omega[0] = hist[0];
+	mu[0] = 0;
+
+	int threshold = 0;
+	for (int i = 0; i < len; i++)
+	{
+		hist[(*src)[i].r]++;
+	}
+	for (int i = 0; i < 256; i++)
+	{
+		hist[i] = hist[i] / len;
+	}
+	for (int i = 1; i < 256; i++)
+	{
+		omega[i] = omega[i - 1] + hist[i]; //累积分布函数
+		mu[i] = mu[i - 1] + i * hist[i];
+	}
+	double mean = mu[255];// 灰度平均值
+	double max = 0;
+	int k_max = 0;
+	for (int k = 1; k < 255; k++)
+	{
+		double PA = omega[k]; // A类所占的比例
+		double PB = 1 - omega[k]; //B类所占的比例
+		double value = 0;
+		if (fabs(PA) > 0.00 && fabs(PB) > 0.00)
+		{
+			double MA = mu[k] / PA; //A 类的灰度均值
+			double MB = (mean - mu[k]) / PB;//B类灰度均值
+			value = PA * (MA - mean) * (MA - mean) + PB * (MB - mean) * (MB - mean);//类间方差
+			//printf("%f\n", value);
+			if (value > max)
+			{
+				max = value;
+				k_max = k;
+			}
+			//printf("%f\n", k);
+		}
+	}
+	printf("%d\n", k_max);
+	MakeSegmentationWithFixedNum(src, dst, k_max);
+	
+}

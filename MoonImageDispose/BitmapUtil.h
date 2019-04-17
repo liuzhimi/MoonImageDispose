@@ -19,6 +19,9 @@ public:
 	static void MakeTranslation(Pixel* src, Pixel* temp, Pixel* dst, int x, int y);//Æ½ÒÆÍ¼Æ¬
 	static void MakeMirror(Pixel* src, Pixel* dst);
 	static void MakeRotate(Pixel* src, Pixel* dst, double degree);
+	static void MakeSegmentationWithFixedNum(Pixel* src, Pixel* dst, int num);
+	static void MakeSegmentationWithIterativeThresholdMethod(Pixel* src, Pixel* dst);
+	static void MakeSegmentationWithOstu(Pixel* src, Pixel* dst);
 
 private:
 	static int FindMid(Pixel* src, int x, int y);
